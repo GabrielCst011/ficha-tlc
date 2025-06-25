@@ -9,8 +9,8 @@ sdk = mercadopago.SDK("APP_USR-673838628377632-061116-53fc407b76ce738ff74227ed8d
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        nome = request.form["nome"]
-        telefone = request.form["telefone"]
+        nome = request.form["nome_cursista"]
+        telefone = request.form["telefone_cursista"]
 
         preference_data = {
             "items": [{
@@ -36,4 +36,7 @@ def obrigado():
     return render_template("obrigado.html")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+
