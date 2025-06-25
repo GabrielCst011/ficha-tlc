@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="{{ url_for('static', filename='brasao_tlc.png') }}" type="image/png">
+  <title>Ficha do TLC 2025</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="{{ url_for('static', filename='brasao_tlc.png') }}" alt="Brasão do TLC">
+      <h1>Ficha de Inscrição - TLC 2025</h1>
+      <p><strong>Data:</strong> 01, 02 e 03 de Agosto.</p>
+      <p><strong>Valor da ficha:</strong> R$ 100,00</p>
+    </header>
+
+    <form method="POST">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_subject" value="Nova ficha de inscrição - TLC 2025">
+
+      <fieldset>
+        <legend>Dados do Cursista</legend>
+        <label>Nome:</label>
+        <input type="text" name="nome_cursista" required>
+
+        <label>Endereço:</label>
+        <input type="text" name="endereco_cursista">
+
+        <label>Telefone:</label>
+        <input type="tel" name="telefone_cursista" maxlength="11" placeholder="Ex: 11991234567" required>
+      </fieldset>
+
+      <fieldset>
+      <legend>Responsável(s)</legend>
+
+  <div id="responsaveis">
+    <div class="responsavel">
+      <label>Nome do Responsável:</label>
+      <input type="text" name="nome_responsavel[]" required>
+
+      <label>Endereço:</label>
+      <input type="text" name="endereco_responsavel[]" required>
+
+      <label>Telefone:</label>
+      <input type="tel" name="telefone_responsavel[]" maxlength="11" placeholder="Ex: 11991234567" required>
+    </div>
+  </div>
+
+      <button type="button" onclick="adicionarResponsavel()">Adicionar outro responsável</button>
+      </fieldset>
+
+
+      <fieldset>
+        <legend>Dirigente Responsável</legend>
+        <label>Nome:</label>
+        <input type="text" name="nome_dirigente">
+        <label>Telefone:</label>
+        <input type="tel" name="telefone_dirigente" maxlength="11">
+      </fieldset>
+
+<fieldset>
+  <legend>Saúde e Condições Especiais</legend>
+
+  <label>Toma remédio controlado?</label>
+  <div class="radio-group">
+    <input type="radio" name="remedio_controlado" value="Sim" onclick="mostrarCampo('remedio')"> Sim
+    <input type="radio" name="remedio_controlado" value="Não" onclick="ocultarCampo('remedio')"> Não
+  </div>
+
+  <div id="campo-remedio" style="display: none;">
+    <label>Qual remédio?</label>
+    <input type="text" name="nome_remedio">
+
+    <label>Horário do remédio:</label>
+    <input type="time" name="horario_remedio">
+  </div>
+
+  <label>Tem deficiência de locomoção?</label>
+  <div class="radio-group">
+    <input type="radio" name="deficiencia_locomocao" value="Sim" onclick="mostrarCampo('deficiencia')"> Sim
+    <input type="radio" name="deficiencia_locomocao" value="Não" onclick="ocultarCampo('deficiencia')"> Não
+  </div>
+
+  <div id="campo-deficiencia" style="display: none;">
+    <label>Qual deficiência?</label>
+    <input type="text" name="detalhes_deficiencia">
+  </div>
+
+  <label>Precisa de auxílio para questões mentais?</label>
+  <div class="radio-group">
+    <input type="radio" name="condicao_mental" value="Sim" onclick="mostrarCampo('mental')"> Sim
+    <input type="radio" name="condicao_mental" value="Não" onclick="ocultarCampo('mental')"> Não
+  </div>
+
+  <div id="campo-mental" style="display: none;">
+    <label>Qual condição?</label>
+    <input type="text" name="detalhes_condicao_mental">
+  </div>
+</fieldset>
+
+
+      <fieldset>
+        <legend>Sacramentos</legend>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="batismo" value="Sim"> Batizado</label>
+          <label><input type="checkbox" name="comunhao" value="Sim"> Primeira Comunhão</label>
+          <label><input type="checkbox" name="crisma" value="Sim"> Crisma</label>
+          <label><input type="checkbox" name="casamento" value="Sim"> Casamento Religioso</label>
+        </div>
+      </fieldset>
+
+      <p><strong>Reunião de Pais:</strong> Dia 12/07/2025 - Paroquia Todos Os Santos, Rua Capri 53, Santa Emilia - Embu das Artes.</p>
+      <button type="submit">Ir para pagamento</button>
+    </form>
+
+    <footer>
+      <p>“Por melhor e mais eficiente que eu seja, jamais serei tão eficiente quanto todos nós juntos.” – Padre Harold Rahm</p>
+    </footer>
+  </div>
+</body>
+</html>
