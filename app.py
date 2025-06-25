@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-sdk = mercadopago.SDK("SEU_ACCESS_TOKEN")
+sdk = mercadopago.SDK("APP_USR-673838628377632-061116-53fc407b76ce738ff74227ed8d59e6e3-727080461")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
