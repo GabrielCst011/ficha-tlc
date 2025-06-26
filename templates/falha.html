@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pagamento Aprovado - Obrigado!</title>
+  <title>Pagamento Recusado</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #e6f0fa, #ffffff);
-      color: #004080;
+      background: linear-gradient(135deg, #ffebee, #fff7f7);
+      color: #c62828;
       margin: 0;
       height: 100vh;
       display: flex;
@@ -22,49 +22,50 @@
       background-color: #fff;
       padding: 40px 50px;
       border-radius: 16px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 12px 30px rgba(198, 40, 40, 0.25);
       text-align: center;
+      border: 2px solid #c62828;
     }
     h1 {
       font-size: 2.5rem;
       margin-bottom: 12px;
       font-weight: 700;
       letter-spacing: 1px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      text-shadow: 0 1px 2px rgba(198, 40, 40, 0.3);
     }
     p {
       font-size: 1.2rem;
       margin-bottom: 30px;
       line-height: 1.4;
     }
-    .checkmark {
+    .crossmark {
       font-size: 6rem;
-      color: #26a69a;
+      color: #c62828;
       margin-bottom: 20px;
       user-select: none;
     }
     a.button {
       display: inline-block;
-      background-color: #0066cc;
+      background-color: #c62828;
       color: white;
       padding: 14px 40px;
       font-size: 1.2rem;
       font-weight: 700;
       border-radius: 12px;
       text-decoration: none;
-      box-shadow: 0 5px 12px rgba(0, 102, 204, 0.4);
+      box-shadow: 0 5px 12px rgba(198, 40, 40, 0.6);
       transition: background-color 0.25s ease, box-shadow 0.25s ease;
       user-select: none;
     }
     a.button:hover,
     a.button:focus {
-      background-color: #004a99;
-      box-shadow: 0 7px 18px rgba(0, 74, 153, 0.7);
+      background-color: #8e1b1b;
+      box-shadow: 0 7px 18px rgba(142, 27, 27, 0.8);
       outline: none;
     }
     a.button:active {
       transform: translateY(1px);
-      box-shadow: 0 4px 10px rgba(0, 74, 153, 0.6);
+      box-shadow: 0 4px 10px rgba(142, 27, 27, 0.7);
     }
 
     /* Responsividade */
@@ -87,9 +88,9 @@
 </head>
 <body>
   <div class="container">
-    <div class="checkmark">✔️</div>
-    <h1>Pagamento Aprovado!</h1>
-    <p>Obrigado por sua inscrição na TLC 2025.<br>Estamos confirmando seus dados e entraremos em contato em breve.</p>
+    <div class="crossmark">❌</div>
+    <h1>Pagamento Recusado</h1>
+    <p>Seu pagamento não foi aprovado.<br>Por favor, tente outro método ou entre em contato conosco para ajuda.</p>
     <a href="/" class="button">Voltar para a página inicial</a>
   </div>
 </body>
