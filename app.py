@@ -2,6 +2,7 @@ import mercadopago
 import sqlite3
 import os
 import traceback
+import psycopg2
 
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_mail import Mail, Message
@@ -51,13 +52,29 @@ init_db()
 
 # Salva inscrição com dados básicos
 def salvar_inscricao(form):
-    with sqlite3.connect("inscricoes.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO inscricoes (nome, telefone, payment_status) VALUES (?, ?, ?)",
-            (form['nome_cursista'], form['telefone_cursista'], 'pendente')
+    conn = psycopg2.connect(
+        host=os.environ.get('DB_HOST'),
+        port=os.environ.get('DB_PORT'),
+        database=os.environ.get('DB_NAME'),
+        user=os.environ.get('DB_USER'),
+        password=os.environ.get('DB_PASSWORD')
+    )
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS inscricoes (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            telefone TEXT
         )
-        return cursor.lastrowid
+    """)
+    cursor.execute("INSERT INTO inscricoes (nome, telefone) VALUES (%s, %s)", (
+        form['nome_cursista'],
+        form['telefone_cursista']
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 
 # Atualiza status do pagamento e payment_id no banco
 def atualizar_pagamento(payment_id, status, inscricao_id=None):
