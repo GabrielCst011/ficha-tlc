@@ -8,7 +8,7 @@ from flask_mail import Mail, Message
 
 app = Flask(__name__)
 
-# Configurações de ambiente obrigatórias
+# Variáveis de ambiente obrigatórias
 MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN')
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
@@ -39,21 +39,21 @@ def criar_tabelas():
         password=os.environ.get('DB_PASSWORD')
     )
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cursistas (
+        CREATE TABLE IF NOT EXISTS inscricoes (
             id SERIAL PRIMARY KEY,
             nome TEXT,
             endereco TEXT,
             telefone TEXT,
             nome_dirigente TEXT,
             telefone_dirigente TEXT,
-            remedio_controlado TEXT,
+            remedio_controlado BOOLEAN,
             nome_remedio TEXT,
             horario_remedio TEXT,
-            deficiencia_locomocao TEXT,
+            deficiencia_locomocao BOOLEAN,
             detalhes_deficiencia TEXT,
-            condicao_mental TEXT,
+            condicao_mental BOOLEAN,
             detalhes_condicao_mental TEXT,
             batismo BOOLEAN,
             comunhao BOOLEAN,
@@ -63,17 +63,17 @@ def criar_tabelas():
             payment_status TEXT
         );
     """)
-    
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS responsaveis (
             id SERIAL PRIMARY KEY,
-            cursista_id INTEGER REFERENCES cursistas(id),
+            inscricao_id INTEGER REFERENCES inscricoes(id) ON DELETE CASCADE,
             nome TEXT,
             endereco TEXT,
             telefone TEXT
         );
     """)
-    
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -124,7 +124,6 @@ def salvar_inscricao(form):
 
     inscricao_id = cursor.fetchone()[0]
 
-    # Responsáveis
     nomes = form.getlist("nome_responsavel[]")
     enderecos = form.getlist("endereco_responsavel[]")
     telefones = form.getlist("telefone_responsavel[]")
@@ -138,6 +137,7 @@ def salvar_inscricao(form):
     conn.commit()
     cursor.close()
     conn.close()
+
     return inscricao_id
 
 def atualizar_pagamento(payment_id, status, inscricao_id=None):
@@ -155,9 +155,11 @@ def atualizar_pagamento(payment_id, status, inscricao_id=None):
 
 def enviar_email_confirmacao(nome, telefone):
     try:
-        msg = Message("Pagamento Aprovado - TLC",
-                      sender="inscricao@tlc.com",
-                      recipients=["devgbl34@outlook.com"])
+        msg = Message(
+            subject="Pagamento Aprovado - TLC",
+            sender="inscricao@tlc.com",
+            recipients=["devgbl34@outlook.com"]
+        )
         msg.body = f"Pagamento aprovado para:\nNome: {nome}\nTelefone: {telefone}"
         mail.send(msg)
     except Exception as e:
