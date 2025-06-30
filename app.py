@@ -169,29 +169,34 @@ def enviar_email_confirmacao(nome, telefone):
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        form = request.form
-        if not form.get("nome_cursista") or not form.get("telefone_cursista"):
-            return "Nome e telefone são obrigatórios", 400
+        try:
+            form = request.form
+            if not form.get("nome_cursista") or not form.get("telefone_cursista"):
+                return "Nome e telefone são obrigatórios", 400
 
-        inscricao_id = salvar_inscricao(form)
+            inscricao_id = salvar_inscricao(form)
 
-        preference_data = {
-            "items": [{
-                "title": "Inscrição TLC 2025",
-                "quantity": 1,
-                "unit_price": 100.0,
-            }],
-            "back_urls": {
-                "success": "https://ficha-tlc.onrender.com/obrigado",
-                "failure": "https://ficha-tlc.onrender.com/falha",
-                "pending": "https://ficha-tlc.onrender.com/pending"
-            },
-            "auto_return": "approved",
-            "external_reference": str(inscricao_id),
-        }
+            preference_data = {
+                "items": [{
+                    "title": "Inscrição TLC 2025",
+                    "quantity": 1,
+                    "unit_price": 100.0,
+                }],
+                "back_urls": {
+                    "success": "https://ficha-tlc.onrender.com/obrigado",
+                    "failure": "https://ficha-tlc.onrender.com/falha",
+                    "pending": "https://ficha-tlc.onrender.com/pending"
+                },
+                "auto_return": "approved",
+                "external_reference": str(inscricao_id),
+            }
 
-        preference_response = sdk.preference().create(preference_data)
-        return redirect(preference_response["response"]["init_point"])
+            preference_response = sdk.preference().create(preference_data)
+            return redirect(preference_response["response"]["init_point"])
+        except Exception as e:
+            print("[ERRO na rota / POST]:", e)
+            traceback.print_exc()
+            return f"Erro interno: {e}", 500
 
     return render_template("index.html")
 
