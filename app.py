@@ -8,7 +8,7 @@ from flask_mail import Mail, Message
 
 app = Flask(__name__)
 
-# Variáveis de ambiente obrigatórias
+# Variáveis obrigatórias
 MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN')
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
@@ -16,10 +16,10 @@ MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 if not MP_ACCESS_TOKEN or not MAIL_USERNAME or not MAIL_PASSWORD:
     raise RuntimeError("Variáveis de ambiente obrigatórias não configuradas.")
 
-# Configuração SDK Mercado Pago
+# SDK Mercado Pago
 sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
 
-# Configuração Flask-Mail (Mailtrap)
+# Configuração do Mailtrap
 app.config.update(
     MAIL_SERVER='sandbox.smtp.mailtrap.io',
     MAIL_PORT=587,
@@ -30,6 +30,7 @@ app.config.update(
 )
 mail = Mail(app)
 
+# Criação das tabelas
 def criar_tabelas():
     conn = psycopg2.connect(
         host=os.environ.get('DB_HOST'),
@@ -67,7 +68,7 @@ def criar_tabelas():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS responsaveis (
             id SERIAL PRIMARY KEY,
-            inscricao_id INTEGER NOT NULL REFERENCES inscricoes(id) ON DELETE CASCADE,
+            inscricao_id INTEGER REFERENCES inscricoes(id) ON DELETE CASCADE,
             nome TEXT NOT NULL,
             endereco TEXT,
             telefone TEXT
@@ -78,9 +79,9 @@ def criar_tabelas():
     cursor.close()
     conn.close()
 
-# Criar as tabelas ao iniciar (pode rodar só uma vez ou garantir idempotência)
 criar_tabelas()
 
+# Conexão com banco
 def get_db_connection():
     return psycopg2.connect(
         host=os.environ.get('DB_HOST'),
@@ -90,11 +91,11 @@ def get_db_connection():
         password=os.environ.get('DB_PASSWORD')
     )
 
+# Salvar inscrição e responsáveis
 def salvar_inscricao(form):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Inserir cursista (inscricao)
     cursor.execute("""
         INSERT INTO inscricoes (
             nome, endereco, telefone,
@@ -126,13 +127,12 @@ def salvar_inscricao(form):
 
     inscricao_id = cursor.fetchone()[0]
 
-    # Inserir responsáveis associados à inscrição
     nomes = form.getlist("nome_responsavel[]")
     enderecos = form.getlist("endereco_responsavel[]")
     telefones = form.getlist("telefone_responsavel[]")
 
     for nome, endereco, telefone in zip(nomes, enderecos, telefones):
-        if nome.strip():  # Ignorar responsáveis sem nome
+        if nome.strip():
             cursor.execute("""
                 INSERT INTO responsaveis (inscricao_id, nome, endereco, telefone)
                 VALUES (%s, %s, %s, %s)
@@ -141,12 +141,10 @@ def salvar_inscricao(form):
     conn.commit()
     cursor.close()
     conn.close()
-
     return inscricao_id
 
-def atualizar_pagamento(payment_id, status, inscricao_id=None):
-    if not inscricao_id:
-        return
+# Atualizar status do pagamento
+def atualizar_pagamento(payment_id, status, inscricao_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -158,6 +156,7 @@ def atualizar_pagamento(payment_id, status, inscricao_id=None):
     cursor.close()
     conn.close()
 
+# Enviar email via Mailtrap
 def enviar_email_confirmacao(nome, telefone):
     try:
         msg = Message(
@@ -168,7 +167,7 @@ def enviar_email_confirmacao(nome, telefone):
         msg.body = f"Pagamento aprovado para:\nNome: {nome}\nTelefone: {telefone}"
         mail.send(msg)
     except Exception as e:
-        print(f"[ERRO] Email: {e}")
+        print(f"[ERRO EMAIL]: {e}")
         traceback.print_exc()
 
 @app.route("/", methods=["GET", "POST"])
@@ -197,15 +196,12 @@ def index():
             }
 
             preference_response = sdk.preference().create(preference_data)
-
             if preference_response.get("status") != 201:
                 return "Erro ao criar preferência de pagamento", 500
 
-            init_point = preference_response["response"]["init_point"]
-            return redirect(init_point)
-
+            return redirect(preference_response["response"]["init_point"])
         except Exception as e:
-            print("[ERRO na rota / POST]:", e)
+            print("[ERRO / POST]:", e)
             traceback.print_exc()
             return f"Erro interno: {e}", 500
 
@@ -231,28 +227,24 @@ def webhook():
             status = payment.get("status")
             inscricao_id = payment.get("external_reference")
 
-            if inscricao_id is None:
-                return jsonify({"error": "Referência externa não encontrada"}), 400
+            if inscricao_id:
+                inscricao_id = int(inscricao_id)
+                atualizar_pagamento(payment_id, status, inscricao_id)
 
-            inscricao_id = int(inscricao_id)
+                if status == "approved":
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT nome, telefone FROM inscricoes WHERE id = %s", (inscricao_id,))
+                    row = cursor.fetchone()
+                    cursor.close()
+                    conn.close()
 
-            atualizar_pagamento(payment_id, status, inscricao_id)
-
-            if status == "approved":
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("SELECT nome, telefone FROM inscricoes WHERE id = %s", (inscricao_id,))
-                row = cursor.fetchone()
-                cursor.close()
-                conn.close()
-
-                if row:
-                    enviar_email_confirmacao(row[0], row[1])
-
+                    if row:
+                        enviar_email_confirmacao(row[0], row[1])
         except Exception as e:
             print(f"[WEBHOOK ERROR]: {e}")
             traceback.print_exc()
-            return jsonify({"error": "Falha interna"}), 500
+            return jsonify({"error": "Erro interno"}), 500
 
     return jsonify({"status": "ok"}), 200
 
