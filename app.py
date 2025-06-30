@@ -13,6 +13,8 @@ MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN')
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
+criar_tabelas()
+
 if not MP_ACCESS_TOKEN or not MAIL_USERNAME or not MAIL_PASSWORD:
     raise RuntimeError("Variáveis de ambiente obrigatórias não configuradas.")
 
@@ -29,6 +31,55 @@ app.config.update(
     MAIL_USE_SSL=False
 )
 mail = Mail(app)
+
+def criar_tabelas():
+    conn = psycopg2.connect(
+        host=os.environ.get('DB_HOST'),
+        port=os.environ.get('DB_PORT'),
+        database=os.environ.get('DB_NAME'),
+        user=os.environ.get('DB_USER'),
+        password=os.environ.get('DB_PASSWORD')
+    )
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cursistas (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            endereco TEXT,
+            telefone TEXT,
+            nome_dirigente TEXT,
+            telefone_dirigente TEXT,
+            remedio_controlado TEXT,
+            nome_remedio TEXT,
+            horario_remedio TEXT,
+            deficiencia_locomocao TEXT,
+            detalhes_deficiencia TEXT,
+            condicao_mental TEXT,
+            detalhes_condicao_mental TEXT,
+            batismo BOOLEAN,
+            comunhao BOOLEAN,
+            crisma BOOLEAN,
+            casamento BOOLEAN,
+            payment_id TEXT,
+            payment_status TEXT
+        );
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS responsaveis (
+            id SERIAL PRIMARY KEY,
+            cursista_id INTEGER REFERENCES cursistas(id),
+            nome TEXT,
+            endereco TEXT,
+            telefone TEXT
+        );
+    """)
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 
 def get_db_connection():
     return psycopg2.connect(
