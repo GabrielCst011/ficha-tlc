@@ -13,8 +13,6 @@ MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN')
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
-criar_tabelas()
-
 if not MP_ACCESS_TOKEN or not MAIL_USERNAME or not MAIL_PASSWORD:
     raise RuntimeError("Variáveis de ambiente obrigatórias não configuradas.")
 
@@ -80,6 +78,7 @@ def criar_tabelas():
     cursor.close()
     conn.close()
 
+criar_tabelas()
 
 def get_db_connection():
     return psycopg2.connect(
