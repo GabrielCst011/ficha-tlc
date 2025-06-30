@@ -12,7 +12,8 @@ gunicorn==20.1.0
 idna==3.10
 itsdangerous==2.2.0
 mercadopago==2.3.0
-psycopg2-binary==2.9.9
+psycopg2-binary
+psycopg2-binary==2.9.10
 requests==2.32.4
 setuptools==80.9.0
 urllib3==2.5.0
