@@ -16,10 +16,10 @@ MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 if not MP_ACCESS_TOKEN or not MAIL_USERNAME or not MAIL_PASSWORD:
     raise RuntimeError("Variáveis de ambiente obrigatórias não configuradas.")
 
-# SDK Mercado Pago
+# Configuração SDK Mercado Pago
 sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
 
-# Configuração Mailtrap
+# Configuração Flask-Mail (Mailtrap)
 app.config.update(
     MAIL_SERVER='sandbox.smtp.mailtrap.io',
     MAIL_PORT=587,
@@ -43,9 +43,9 @@ def criar_tabelas():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS inscricoes (
             id SERIAL PRIMARY KEY,
-            nome TEXT,
+            nome TEXT NOT NULL,
             endereco TEXT,
-            telefone TEXT,
+            telefone TEXT NOT NULL,
             nome_dirigente TEXT,
             telefone_dirigente TEXT,
             remedio_controlado BOOLEAN,
@@ -67,8 +67,8 @@ def criar_tabelas():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS responsaveis (
             id SERIAL PRIMARY KEY,
-            inscricao_id INTEGER REFERENCES inscricoes(id) ON DELETE CASCADE,
-            nome TEXT,
+            inscricao_id INTEGER NOT NULL REFERENCES inscricoes(id) ON DELETE CASCADE,
+            nome TEXT NOT NULL,
             endereco TEXT,
             telefone TEXT
         );
@@ -78,6 +78,7 @@ def criar_tabelas():
     cursor.close()
     conn.close()
 
+# Criar as tabelas ao iniciar (pode rodar só uma vez ou garantir idempotência)
 criar_tabelas()
 
 def get_db_connection():
@@ -93,6 +94,7 @@ def salvar_inscricao(form):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Inserir cursista (inscricao)
     cursor.execute("""
         INSERT INTO inscricoes (
             nome, endereco, telefone,
@@ -124,15 +126,17 @@ def salvar_inscricao(form):
 
     inscricao_id = cursor.fetchone()[0]
 
+    # Inserir responsáveis associados à inscrição
     nomes = form.getlist("nome_responsavel[]")
     enderecos = form.getlist("endereco_responsavel[]")
     telefones = form.getlist("telefone_responsavel[]")
 
     for nome, endereco, telefone in zip(nomes, enderecos, telefones):
-        cursor.execute("""
-            INSERT INTO responsaveis (inscricao_id, nome, endereco, telefone)
-            VALUES (%s, %s, %s, %s)
-        """, (inscricao_id, nome, endereco, telefone))
+        if nome.strip():  # Ignorar responsáveis sem nome
+            cursor.execute("""
+                INSERT INTO responsaveis (inscricao_id, nome, endereco, telefone)
+                VALUES (%s, %s, %s, %s)
+            """, (inscricao_id, nome.strip(), endereco.strip(), telefone.strip()))
 
     conn.commit()
     cursor.close()
@@ -141,14 +145,15 @@ def salvar_inscricao(form):
     return inscricao_id
 
 def atualizar_pagamento(payment_id, status, inscricao_id=None):
+    if not inscricao_id:
+        return
     conn = get_db_connection()
     cursor = conn.cursor()
-    if inscricao_id:
-        cursor.execute("""
-            UPDATE inscricoes
-            SET payment_id = %s, payment_status = %s
-            WHERE id = %s
-        """, (payment_id, status, inscricao_id))
+    cursor.execute("""
+        UPDATE inscricoes
+        SET payment_id = %s, payment_status = %s
+        WHERE id = %s
+    """, (payment_id, status, inscricao_id))
     conn.commit()
     cursor.close()
     conn.close()
@@ -192,7 +197,13 @@ def index():
             }
 
             preference_response = sdk.preference().create(preference_data)
-            return redirect(preference_response["response"]["init_point"])
+
+            if preference_response.get("status") != 201:
+                return "Erro ao criar preferência de pagamento", 500
+
+            init_point = preference_response["response"]["init_point"]
+            return redirect(init_point)
+
         except Exception as e:
             print("[ERRO na rota / POST]:", e)
             traceback.print_exc()
@@ -215,24 +226,33 @@ def webhook():
             payment_info = sdk.payment().get(payment_id)
             if payment_info.get("status") != 200:
                 return jsonify({"error": "Pagamento não encontrado"}), 404
+
             payment = payment_info["response"]
             status = payment.get("status")
-            inscricao_id = int(payment.get("external_reference"))
+            inscricao_id = payment.get("external_reference")
+
+            if inscricao_id is None:
+                return jsonify({"error": "Referência externa não encontrada"}), 400
+
+            inscricao_id = int(inscricao_id)
+
+            atualizar_pagamento(payment_id, status, inscricao_id)
+
+            if status == "approved":
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT nome, telefone FROM inscricoes WHERE id = %s", (inscricao_id,))
+                row = cursor.fetchone()
+                cursor.close()
+                conn.close()
+
+                if row:
+                    enviar_email_confirmacao(row[0], row[1])
+
         except Exception as e:
             print(f"[WEBHOOK ERROR]: {e}")
+            traceback.print_exc()
             return jsonify({"error": "Falha interna"}), 500
-
-        atualizar_pagamento(payment_id, status, inscricao_id)
-
-        if status == "approved":
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT nome, telefone FROM inscricoes WHERE id = %s", (inscricao_id,))
-            row = cursor.fetchone()
-            if row:
-                enviar_email_confirmacao(row[0], row[1])
-            cursor.close()
-            conn.close()
 
     return jsonify({"status": "ok"}), 200
 
